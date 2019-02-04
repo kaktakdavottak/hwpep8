@@ -6,29 +6,31 @@ from email.mime.multipart import MIMEMultipart
 
 
 class MailBox:
-    def __init__(self, login, password, smtp, imap):
+    DEFAULT_SMTP = 'smtp.gmail.com'
+    DEFAULT_IMAP = 'imap.gmail.com'
+    DEFAULT_PORT = 587
+
+    def __init__(self, login, password):
         self.login = login
         self.password = password
-        self.smtp = smtp
-        self.imap = imap
 
-    def send_message(self, subject, recipients, message, port=587):
+    def send_message(self, subject, recipients, message):
         msg = MIMEMultipart()
         msg['From'] = self.login
         msg['To'] = ', '.join(recipients)
         msg['Subject'] = subject
         msg.attach(MIMEText(message))
 
-        ms = smtplib.SMTP(self.smtp, port)
+        ms = smtplib.SMTP(self.DEFAULT_SMTP, self.DEFAULT_PORT)
         ms.ehlo()
         ms.starttls()
         ms.ehlo()
         ms.login(self.login, self.password)
-        ms.sendmail(self.login, ms, msg.as_string())
+        ms.sendmail(msg['From'], msg['To'], msg.as_string())
         ms.quit()
 
     def receive_messages(self, folder="inbox", header=None):
-        mail = imaplib.IMAP4_SSL(self.imap)
+        mail = imaplib.IMAP4_SSL(self.DEFAULT_IMAP)
         mail.login(self.login, self.password)
         mail.list()
         mail.select(folder)
@@ -38,12 +40,13 @@ class MailBox:
         latest_email_uid = data[0].split()[-1]
         result, data = mail.uid('fetch', latest_email_uid, '(RFC822)')
         raw_email = data[0][1]
-        email_message = email.message_from_string(raw_email)
+        email_message = email.message_from_bytes(raw_email)
         mail.logout()
         return email_message
 
 
 if __name__ == '__main__':
-    my_email = MailBox('login@gmail.com', 'qwerty', 'smtp.gmail.com', 'imap.gmail.com')
-    my_email.send_message('Subject', ['vasya@email.com', 'petya@email.com'], 'Message')
+    my_email = MailBox('login@gmail.com', 'qwerty')
+    my_email.send_message('Subject', ['vasya@email.com', 'petya@email.com'],
+                          'Message')
     print(my_email.receive_messages())
