@@ -4,15 +4,19 @@ import imaplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+DEFAULT_SMTP = 'smtp.gmail.com'
+DEFAULT_IMAP = 'imap.gmail.com'
+DEFAULT_PORT = 587
+
 
 class MailBox:
-    DEFAULT_SMTP = 'smtp.gmail.com'
-    DEFAULT_IMAP = 'imap.gmail.com'
-    DEFAULT_PORT = 587
-
-    def __init__(self, login, password):
+    def __init__(self, login, password, smtp=DEFAULT_SMTP,
+                 imap=DEFAULT_IMAP, smtp_port=DEFAULT_PORT):
         self.login = login
         self.password = password
+        self.smtp = smtp
+        self.imap = imap
+        self.smtp_port = smtp_port
 
     def send_message(self, subject, recipients, message):
         msg = MIMEMultipart()
@@ -21,16 +25,16 @@ class MailBox:
         msg['Subject'] = subject
         msg.attach(MIMEText(message))
 
-        ms = smtplib.SMTP(self.DEFAULT_SMTP, self.DEFAULT_PORT)
+        ms = smtplib.SMTP(self.smtp, self.smtp_port)
         ms.ehlo()
         ms.starttls()
         ms.ehlo()
         ms.login(self.login, self.password)
-        ms.sendmail(msg['From'], msg['To'], msg.as_string())
+        ms.sendmail(self.login, recipients, msg.as_string())
         ms.quit()
 
     def receive_messages(self, folder="inbox", header=None):
-        mail = imaplib.IMAP4_SSL(self.DEFAULT_IMAP)
+        mail = imaplib.IMAP4_SSL(self.imap)
         mail.login(self.login, self.password)
         mail.list()
         mail.select(folder)
